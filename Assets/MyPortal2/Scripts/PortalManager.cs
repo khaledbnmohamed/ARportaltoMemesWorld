@@ -13,7 +13,7 @@ public class PortalManager : MonoBehaviour {
     public AudioSource mySong;
     public GameObject Button;
 
-    private bool PicturesReady;
+    public static bool EnteredFromPortal;
     private bool ButtonReady;
 
 
@@ -33,17 +33,17 @@ public class PortalManager : MonoBehaviour {
 
         if (Pictures.activeInHierarchy == false)
         {
-            PicturesReady = true;
+            EnteredFromPortal = true;
            // Pictures.SetActive(true);
 
         }
-
-        if (Button.activeInHierarchy == false)
+        else
         {
-            ButtonReady = true;
-            // Pictures.SetActive(true);
+            EnteredFromPortal = false;
+
 
         }
+
         if (mySong.volume == 1)
         {
             mySong.volume = Mathf.Lerp(1, 0.105f, 5);
@@ -58,26 +58,10 @@ public class PortalManager : MonoBehaviour {
     }
     private void OnTriggerExit(Collider other)
     {
-        if (Pictures.activeInHierarchy == false && PicturesReady == true)
-        {
-            Pictures.SetActive(true);
-
-        }
-        else
-        {
+        
             Pictures.SetActive(false);
 
-        }
-        if (Button.activeInHierarchy == false && ButtonReady == true)
-        {
-            Button.SetActive(true);
-
-        }
-        else
-        {
             Button.SetActive(false);
-
-        }
 
 
     }
