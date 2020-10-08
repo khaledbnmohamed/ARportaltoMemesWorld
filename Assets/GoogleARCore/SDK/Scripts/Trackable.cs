@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------
-// <copyright file="Trackable.cs" company="Google">
+// <copyright file="Trackable.cs" company="Google LLC">
 //
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,14 +33,12 @@ namespace GoogleARCore
         /// <summary>
         /// A native handle for the ARCore trackable.
         /// </summary>
-        internal IntPtr m_TrackableNativeHandle = IntPtr.Zero;
+        internal IntPtr _trackableNativeHandle = IntPtr.Zero;
 
         /// <summary>
         /// The native api for ARCore.
         /// </summary>
-        internal NativeSession m_NativeSession;
-
-        private bool m_IsSessionDestroyed = false;
+        internal NativeSession _nativeSession;
 
         internal Trackable()
         {
@@ -48,13 +46,13 @@ namespace GoogleARCore
 
         internal Trackable(IntPtr trackableNativeHandle, NativeSession nativeSession)
         {
-            m_TrackableNativeHandle = trackableNativeHandle;
-            m_NativeSession = nativeSession;
+            _trackableNativeHandle = trackableNativeHandle;
+            _nativeSession = nativeSession;
         }
 
         ~Trackable()
         {
-            m_NativeSession.TrackableApi.Release(m_TrackableNativeHandle);
+            _nativeSession.TrackableApi.Release(_trackableNativeHandle);
         }
 
         /// <summary>
@@ -63,58 +61,66 @@ namespace GoogleARCore
         /// <returns>The tracking state of for the Trackable in the current frame.</returns>
         public virtual TrackingState TrackingState
         {
+            [SuppressMemoryAllocationError(
+                IsWarning = true, Reason = "Requires further investigation.")]
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
                     // Trackables from another session are considered stopped.
                     return TrackingState.Stopped;
                 }
 
-                return m_NativeSession.TrackableApi.GetTrackingState(m_TrackableNativeHandle);
+                return _nativeSession.TrackableApi.GetTrackingState(_trackableNativeHandle);
             }
         }
 
         /// <summary>
-        /// Creates an Anchor at the given <c>Pose</c> that is attached to the Trackable where semantics of the
-        /// attachment relationship are defined by the subcass of Trackable (e.g. DetectedPlane).   Note that the
-        /// relative offset between the Pose of multiple Anchors attached to the same Trackable may change
-        /// over time as ARCore refines its understanding of the world.
+        /// Creates an Anchor at the given <c>Pose</c> that is attached to the Trackable where
+        /// semantics of the attachment relationship are defined by the subcass of Trackable (e.g.,
+        /// DetectedPlane).   Note that the relative offset between the Pose of multiple Anchors
+        /// attached to the same Trackable may change over time as ARCore refines its understanding
+        /// of the world.
         /// </summary>
         /// <param name="pose">The Pose of the location to create the anchor.</param>
         /// <returns>An Anchor attached to the Trackable at <c>Pose</c>.</returns>
+        [SuppressMemoryAllocationError(Reason = "Could allocate a new Anchor object")]
         public virtual Anchor CreateAnchor(Pose pose)
         {
-            if (_IsSessionDestroyed())
+            if (IsSessionDestroyed())
             {
-                Debug.LogError("CreateAnchor:: Trying to access a session that has already been destroyed.");
+                Debug.LogError(
+                    "CreateAnchor:: Trying to access a session that has already been destroyed.");
                 return null;
             }
 
             IntPtr anchorHandle;
-            if (!m_NativeSession.TrackableApi.AcquireNewAnchor(m_TrackableNativeHandle, pose, out anchorHandle))
+            if (!_nativeSession.TrackableApi.AcquireNewAnchor(
+                _trackableNativeHandle, pose, out anchorHandle))
             {
                 Debug.Log("Failed to create anchor on trackable.");
                 return null;
             }
 
-            return Anchor.Factory(m_NativeSession, anchorHandle);
+            return Anchor.Factory(_nativeSession, anchorHandle);
         }
 
         /// <summary>
         /// Gets all anchors attached to the Trackable.
         /// </summary>
         /// <param name="anchors">A list of anchors to be filled by the method.</param>
+        [SuppressMemoryAllocationError(Reason = "List could be resized.")]
         public virtual void GetAllAnchors(List<Anchor> anchors)
         {
-            if (_IsSessionDestroyed())
+            if (IsSessionDestroyed())
             {
-                Debug.LogError("GetAllAnchors:: Trying to access a session that has already been destroyed.");
+                Debug.LogError(
+                    "GetAllAnchors:: Trying to access a session that has already been destroyed.");
                 anchors.Clear();
                 return;
             }
 
-            m_NativeSession.TrackableApi.GetAnchors(m_TrackableNativeHandle, anchors);
+            _nativeSession.TrackableApi.GetAnchors(_trackableNativeHandle, anchors);
         }
 
         /// <summary>
@@ -122,18 +128,9 @@ namespace GoogleARCore
         /// </summary>
         /// <returns><c>true</c> if the session this Trackable belongs to was destroyed,
         /// <c>false</c> otherwise.</returns>
-        protected bool _IsSessionDestroyed()
+        protected bool IsSessionDestroyed()
         {
-            if (!m_IsSessionDestroyed)
-            {
-                var nativeSession = LifecycleManager.Instance.NativeSession;
-                if (nativeSession != m_NativeSession)
-                {
-                    m_IsSessionDestroyed = true;
-                }
-            }
-
-            return m_IsSessionDestroyed;
+            return _nativeSession.IsDestroyed;
         }
     }
 }

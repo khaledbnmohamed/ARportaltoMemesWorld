@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------
-// <copyright file="ExperimentManager.cs" company="Google">
+// <copyright file="ExperimentManager.cs" company="Google LLC">
 //
-// Copyright 2018 Google Inc. All Rights Reserved.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,50 +22,61 @@ namespace GoogleARCoreInternal
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Threading;
+    using System.Reflection;
     using GoogleARCore;
 
     internal class ExperimentManager
     {
-        private static ExperimentManager s_Instance;
-        private List<ExperimentBase> m_Experiments;
+        private static ExperimentManager _instance;
+        private List<ExperimentBase> _experiments;
 
         public ExperimentManager()
         {
             // Experiments all derive from ExperimentBase to get hooks to the internal
             // state. Find and hook them up.
-            m_Experiments = new List<ExperimentBase>();
+            _experiments = new List<ExperimentBase>();
 
-            var implementingTypes = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(s => s.GetTypes())
-                .Where(p => typeof(ExperimentBase).IsAssignableFrom(p));
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            List<Type> allTypes = new List<Type>();
 
-            foreach (var type in implementingTypes)
+            foreach (var assembly in assemblies)
             {
-                if (!type.IsClass || type.IsAbstract)
+                try
+                {
+                    var assemblyTypes = assembly.GetTypes();
+                    allTypes.AddRange(assemblyTypes);
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    UnityEngine.Debug.Log(
+                        "Unable to load types from assembly:: " + assembly.ToString() + ":: " +
+                        ex.Message);
+                }
+            }
+
+            foreach (var type in allTypes)
+            {
+                if (!type.IsClass ||
+                    type.IsAbstract ||
+                    !typeof(ExperimentBase).IsAssignableFrom(type))
                 {
                     continue;
                 }
 
-                m_Experiments.Add(Activator.CreateInstance(type) as ExperimentBase);
+                _experiments.Add(Activator.CreateInstance(type) as ExperimentBase);
             }
         }
-
-        private delegate void OnBeforeSetConfigurationCallback(IntPtr sessionHandhle, IntPtr configHandle);
 
         public static ExperimentManager Instance
         {
             get
             {
-                if (s_Instance == null)
+                if (_instance == null)
                 {
-                    s_Instance = new ExperimentManager();
-                    LifecycleManager.Instance.EarlyUpdate += s_Instance._OnEarlyUpdate;
+                    _instance = new ExperimentManager();
                 }
 
-                return s_Instance;
+                return _instance;
             }
         }
 
@@ -77,7 +88,7 @@ namespace GoogleARCoreInternal
             {
                 bool result = false;
 
-                foreach (var experiment in m_Experiments)
+                foreach (var experiment in _experiments)
                 {
                     result = result || experiment.IsConfigurationDirty();
                 }
@@ -86,42 +97,69 @@ namespace GoogleARCoreInternal
             }
         }
 
-        public void OnBeforeSetConfiguration(IntPtr sessionHandle, IntPtr configHandle)
+        public void Initialize()
         {
-            foreach (var experiment in m_Experiments)
-            {
-                experiment.OnBeforeSetConfiguration(sessionHandle, configHandle);
-            }
+            LifecycleManager.Instance.EarlyUpdate += _instance.OnEarlyUpdate;
+            LifecycleManager.Instance.UpdateSessionFeatures +=
+                _instance.OnUpdateSessionFeatures;
+            LifecycleManager.Instance.OnSetConfiguration +=
+                        _instance.SetConfiguration;
         }
 
         public bool IsManagingTrackableType(int trackableType)
         {
-            return _GetTrackableTypeManager(trackableType) != null;
+            return GetTrackableTypeManager(trackableType) != null;
+        }
+
+        public TrackableHitFlags GetTrackableHitFlags(int trackableType)
+        {
+            ExperimentBase trackableManager = GetTrackableTypeManager(trackableType);
+            if (trackableManager != null)
+            {
+                return trackableManager.GetTrackableHitFlags(trackableType);
+            }
+
+            return TrackableHitFlags.None;
         }
 
         public Trackable TrackableFactory(int trackableType, IntPtr trackableHandle)
         {
-            ExperimentBase trackableManager = _GetTrackableTypeManager(trackableType);
+            ExperimentBase trackableManager = GetTrackableTypeManager(trackableType);
             if (trackableManager != null)
             {
                 return trackableManager.TrackableFactory(trackableType, trackableHandle);
             }
 
-            throw new NotImplementedException(
-                    "ExperimentManager.TrackableFactory::No constructor for requested trackable type.");
+            return null;
         }
 
-        private void _OnEarlyUpdate()
+        public void OnUpdateSessionFeatures()
         {
-            foreach (var experiment in m_Experiments)
+            foreach (var experiment in _experiments)
+            {
+                experiment.OnUpdateSessionFeatures();
+            }
+        }
+
+        private void OnEarlyUpdate()
+        {
+            foreach (var experiment in _experiments)
             {
                 experiment.OnEarlyUpdate();
             }
         }
 
-        private ExperimentBase _GetTrackableTypeManager(int trackableType)
+        private void SetConfiguration(IntPtr sessionHandle, IntPtr configHandle)
         {
-            foreach (var experiment in m_Experiments)
+            foreach (var experiment in _experiments)
+            {
+                experiment.OnSetConfiguration(sessionHandle, configHandle);
+            }
+        }
+
+        private ExperimentBase GetTrackableTypeManager(int trackableType)
+        {
+            foreach (var experiment in _experiments)
             {
                 if (experiment.IsManagingTrackableType(trackableType))
                 {

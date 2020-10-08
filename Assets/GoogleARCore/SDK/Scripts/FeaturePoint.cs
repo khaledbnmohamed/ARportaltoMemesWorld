@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------
-// <copyright file="FeaturePoint.cs" company="Google">
+// <copyright file="FeaturePoint.cs" company="Google LLC">
 //
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 namespace GoogleARCore
 {
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using GoogleARCoreInternal;
     using UnityEngine;
 
@@ -36,7 +34,8 @@ namespace GoogleARCore
         /// </summary>
         /// <param name="nativeHandle">A handle to the native ARCore API Trackable.</param>
         /// <param name="nativeApi">The ARCore native api.</param>
-        internal FeaturePoint(IntPtr nativeHandle, NativeSession nativeApi) : base(nativeHandle, nativeApi)
+        internal FeaturePoint(IntPtr nativeHandle, NativeSession nativeApi) :
+            base(nativeHandle, nativeApi)
         {
         }
 
@@ -47,13 +46,14 @@ namespace GoogleARCore
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("Pose:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "Pose:: Trying to access a session that has already been destroyed.");
                     return new Pose();
                 }
 
-                return m_NativeSession.PointApi.GetPose(m_TrackableNativeHandle);
+                return _nativeSession.PointApi.GetPose(_trackableNativeHandle);
             }
         }
 
@@ -62,15 +62,19 @@ namespace GoogleARCore
         /// </summary>
         public FeaturePointOrientationMode OrientationMode
         {
+            [SuppressMemoryAllocationError(
+                IsWarning = true, Reason = "Requires further investigation.")]
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("OrientationMode:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "OrientationMode:: Trying to access a session that has already been " +
+                        "destroyed.");
                     return FeaturePointOrientationMode.Identity;
                 }
 
-                return m_NativeSession.PointApi.GetOrientationMode(m_TrackableNativeHandle);
+                return _nativeSession.PointApi.GetOrientationMode(_trackableNativeHandle);
             }
         }
     }

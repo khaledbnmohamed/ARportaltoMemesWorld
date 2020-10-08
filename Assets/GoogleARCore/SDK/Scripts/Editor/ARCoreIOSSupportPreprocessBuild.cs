@@ -1,7 +1,7 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="ARCoreIOSSupportPreprocessBuild.cs" company="Google">
+//-----------------------------------------------------------------------
+// <copyright file="ARCoreIOSSupportPreprocessBuild.cs" company="Google LLC">
 //
-// Copyright 2018 Google Inc. All Rights Reserved.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,31 +28,15 @@ namespace GoogleARCoreInternal
     using UnityEditor.Build;
     using UnityEngine;
 
-    internal class ARCoreIOSSupportPreprocessBuild : IPreprocessBuild
+    internal class ARCoreIOSSupportPreprocessBuild : PreprocessBuildBase
     {
-        [SuppressMessage("UnityRules.UnityStyleRules", "US1000:FieldsMustBeUpperCamelCase",
-         Justification = "Overriden property.")]
-        public int callbackOrder
-        {
-            get
-            {
-                return 0;
-            }
-        }
-
-        public void OnPreprocessBuild(BuildTarget target, string path)
+        public override void OnPreprocessBuild(BuildTarget target, string path)
         {
             if (target == BuildTarget.iOS)
             {
                 bool arcoreiOSEnabled = ARCoreProjectSettings.Instance.IsIOSSupportEnabled;
-                if (arcoreiOSEnabled)
-                {
-                    Debug.Log("Building application with ARCore iOS support ENABLED.");
-                }
-                else
-                {
-                    Debug.Log("Building application with ARCore iOS support DISABLED.");
-                }
+                Debug.LogFormat("Building application with ARCore SDK for Unity iOS support {0}",
+                    arcoreiOSEnabled ? "ENABLED" : "DISABLED");
 
                 ARCoreIOSSupportHelper.SetARCoreIOSSupportEnabled(arcoreiOSEnabled);
             }

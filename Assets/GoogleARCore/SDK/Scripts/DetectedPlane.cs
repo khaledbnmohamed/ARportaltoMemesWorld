@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------
-// <copyright file="DetectedPlane.cs" company="Google">
+// <copyright file="DetectedPlane.cs" company="Google LLC">
 //
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,25 +39,26 @@ namespace GoogleARCore
         internal DetectedPlane(IntPtr nativeHandle, NativeSession nativeApi)
             : base(nativeHandle, nativeApi)
         {
-            m_TrackableNativeHandle = nativeHandle;
-            m_NativeSession = nativeApi;
+            _trackableNativeHandle = nativeHandle;
+            _nativeSession = nativeApi;
         }
 
         /// <summary>
-        /// Gets a reference to the plane subsuming this plane, if any. If not null, only the subsuming plane should be
-        /// considered valid for rendering.
+        /// Gets a reference to the plane subsuming this plane, if any. If not null, only the
+        /// subsuming plane should be considered valid for rendering.
         /// </summary>
         public DetectedPlane SubsumedBy
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("SubsumedBy:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "SubsumedBy:: Trying to access a session that has already been destroyed.");
                     return null;
                 }
 
-                return m_NativeSession.PlaneApi.GetSubsumedBy(m_TrackableNativeHandle);
+                return _nativeSession.PlaneApi.GetSubsumedBy(_trackableNativeHandle);
             }
         }
 
@@ -68,13 +69,14 @@ namespace GoogleARCore
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("CenterPose:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "CenterPose:: Trying to access a session that has already been destroyed.");
                     return new Pose();
                 }
 
-                return m_NativeSession.PlaneApi.GetCenterPose(m_TrackableNativeHandle);
+                return _nativeSession.PlaneApi.GetCenterPose(_trackableNativeHandle);
             }
         }
 
@@ -85,13 +87,14 @@ namespace GoogleARCore
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("ExtentX:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "ExtentX:: Trying to access a session that has already been destroyed.");
                     return 0f;
                 }
 
-                return m_NativeSession.PlaneApi.GetExtentX(m_TrackableNativeHandle);
+                return _nativeSession.PlaneApi.GetExtentX(_trackableNativeHandle);
             }
         }
 
@@ -102,13 +105,14 @@ namespace GoogleARCore
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("ExtentZ:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "ExtentZ:: Trying to access a session that has already been destroyed.");
                     return 0f;
                 }
 
-                return m_NativeSession.PlaneApi.GetExtentZ(m_TrackableNativeHandle);
+                return _nativeSession.PlaneApi.GetExtentZ(_trackableNativeHandle);
             }
         }
 
@@ -119,30 +123,35 @@ namespace GoogleARCore
         {
             get
             {
-                if (_IsSessionDestroyed())
+                if (IsSessionDestroyed())
                 {
-                    Debug.LogError("PlaneType:: Trying to access a session that has already been destroyed.");
+                    Debug.LogError(
+                        "PlaneType:: Trying to access a session that has already been destroyed.");
                     return DetectedPlaneType.HorizontalUpwardFacing;
                 }
 
-                return m_NativeSession.PlaneApi.GetPlaneType(m_TrackableNativeHandle);
+                return _nativeSession.PlaneApi.GetPlaneType(_trackableNativeHandle);
             }
         }
 
         /// <summary>
-        /// Gets a list of points (in clockwise order) in Unity world space representing a boundary polygon for
-        /// the plane.
+        /// Gets a list of points (in clockwise order) in Unity world space representing a boundary
+        /// polygon for the plane.
         /// </summary>
-        /// <param name="boundaryPolygonPoints">A list of <b>Vector3</b> to be filled by the method call.</param>
+        /// <param name="boundaryPolygonPoints">A list of <b>Vector3</b> to be filled by the method
+        /// call.</param>
+        [SuppressMemoryAllocationError(Reason = "List could be resized.")]
         public void GetBoundaryPolygon(List<Vector3> boundaryPolygonPoints)
         {
-            if (_IsSessionDestroyed())
+            if (IsSessionDestroyed())
             {
-                Debug.LogError("GetBoundaryPolygon:: Trying to access a session that has already been destroyed.");
+                Debug.LogError(
+                    "GetBoundaryPolygon:: Trying to access a session that has already been " +
+                    "destroyed.");
                 return;
             }
 
-            m_NativeSession.PlaneApi.GetPolygon(m_TrackableNativeHandle, boundaryPolygonPoints);
+            _nativeSession.PlaneApi.GetPolygon(_trackableNativeHandle, boundaryPolygonPoints);
         }
     }
 }
